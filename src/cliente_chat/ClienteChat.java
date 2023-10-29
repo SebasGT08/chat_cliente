@@ -18,9 +18,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class ClienteChat {
-    private static final String SERVER_ADDRESS = "localhost";  // Asume que el servidor se ejecuta en la misma máquina. Cambia si es necesario.
+    // Constantes para la dirección y el puerto del servidor
+    private static final String SERVER_ADDRESS = "localhost"; 
     private static final int SERVER_PORT = 12345;
 
+    // Componentes de la interfaz gráfica
     private JFrame frame;
     private JTextArea textArea;
     private JTextField textField;
@@ -32,26 +34,29 @@ public class ClienteChat {
     }
 
     private void createGUI() {
+        // Crear y configurar ventana principal
         frame = new JFrame("Cliente Chat");
         frame.setSize(400, 300);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        // Área de texto para mostrar mensajes
         textArea = new JTextArea();
         textArea.setEditable(false);
 
+        // Scroll para el área de texto
         JScrollPane scrollPane = new JScrollPane(textArea);
         frame.add(scrollPane, BorderLayout.CENTER);
 
+        // Panel inferior con campo de texto y botón de enviar
         JPanel bottomPanel = new JPanel(new BorderLayout());
         textField = new JTextField();
         JButton sendButton = new JButton("Enviar");
 
         bottomPanel.add(textField, BorderLayout.CENTER);
         bottomPanel.add(sendButton, BorderLayout.EAST);
-
         frame.add(bottomPanel, BorderLayout.SOUTH);
 
-        // Evento al pulsar el botón de enviar
+        // Acción al pulsar el botón de enviar
         sendButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -59,7 +64,7 @@ public class ClienteChat {
             }
         });
 
-        // Evento al pulsar Enter en el campo de texto
+        // Acción al pulsar Enter en el campo de texto
         textField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -70,10 +75,11 @@ public class ClienteChat {
         frame.setVisible(true);
 
         try {
+            // Establecer conexión con el servidor
             Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
 
-            // Crear un hilo para escuchar mensajes del servidor
+            // Hilo para escuchar mensajes del servidor
             Thread receiveThread = new Thread() {
                 @Override
                 public void run() {
@@ -85,6 +91,9 @@ public class ClienteChat {
                             String decryptedMessage = CryptoHelper.decrypt(message);
                             textArea.append(decryptedMessage + "\n");
                         }
+                    } catch (SocketException se) {
+                        System.out.println("Se perdió la conexión con el servidor.");
+                        JOptionPane.showMessageDialog(frame, "Se perdió la conexión con el servidor.", "Error", JOptionPane.ERROR_MESSAGE);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -92,6 +101,7 @@ public class ClienteChat {
             };
             receiveThread.start();
 
+            // Pedir nombre del usuario para identificación
             name = JOptionPane.showInputDialog(frame, "Ingresa tu nombre:", "Conexión", JOptionPane.QUESTION_MESSAGE);
             String encryptedMessage = CryptoHelper.encrypt(name + " se ha conectado.");
             out.println(encryptedMessage);
@@ -103,15 +113,19 @@ public class ClienteChat {
     }
 
     private void sendMessage() {
+        // Recoger y formatear el mensaje del usuario
         String message = textField.getText();
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         String formattedMessage = sdf.format(new Date()) +"- "+name+ ": " + message;
         String encryptedMessage = CryptoHelper.encrypt(formattedMessage);
+
+        // Enviar mensaje cifrado al servidor
         out.println(encryptedMessage);
         textField.setText("");
     }
 
     public static void main(String[] args) {
+        // Ejecutar la aplicación cliente en el hilo de despacho de eventos de Swing
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -120,3 +134,4 @@ public class ClienteChat {
         });
     }
 }
+
